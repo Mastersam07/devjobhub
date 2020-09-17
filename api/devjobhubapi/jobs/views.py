@@ -13,11 +13,16 @@ from jobs.serializers import ApplicantSerializer, JobSerializer
 from jobs.models import Applicant, Job
 
 from .serializers import *
+from django.core import serializers
+from django.core.serializers import serialize
+import json
+from django.http.response import HttpResponse
 
 
 class JobViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = JobSerializer
-    queryset = serializer_class.Meta.model.objects.filter(filled=False)
+    # queryset = serializer_class.Meta.model.objects.filter(filled=False)
+    queryset = serializer_class.Meta.model.objects.all()
     permission_classes = [AllowAny]
 
 
@@ -27,13 +32,14 @@ class SearchApiView(ListAPIView):
 
     def get_queryset(self):
         if 'location' in self.request.GET and 'position' in self.request.GET:
-            return self.serializer_class.Meta.model.objects.filter(filled=False, location__contains=self.request.GET['location'],
-                                                                   title__contains=self.request.GET['position'])
+            return self.serializer_class.Meta.model.objects.filter(location__icontains=self.request.GET['location'],
+                                                                   title__icontains=self.request.GET['position'])
         else:
-            return self.serializer_class.Meta.model.objects.filter(filled=False)
+            # return self.serializer_class.Meta.model.objects.filter(filled=False)
+            return self.serializer_class.Meta.model.objects.all()
 
 
-class ApplyJobApiView(CreateAPIView):
+class SaveJobApiView(CreateAPIView):
     serializer_class = ApplicantSerializer
     http_method_names = [u'post']
     permission_classes = [IsAuthenticated, IsEmployee]
@@ -49,20 +55,19 @@ class ApplyJobApiView(CreateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
-class AppliedJobsAPIView(ListAPIView):
+class SavedJobsAPIView(ListAPIView):
     serializer_class = JobSerializer
     permission_classes = [IsAuthenticated, IsEmployee]
 
     def get_queryset(self):
-        applied_jobs_id = list(Applicant.objects.filter(user=self.request.user).values_list('job_id', flat=True))
-        return Job.objects.filter(id__in=applied_jobs_id)
+        saved_jobs_id = list(Applicant.objects.filter(user=self.request.user).values_list('job_id', flat=True))
+        return Job.objects.filter(id__in=saved_jobs_id)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsEmployee])
-def already_applied_api_view(request, job_id):
-    is_applied = Applicant.objects.filter(user=request.user, job_id=job_id).exists()
-    content = {
-        'is_applied': is_applied
-    }
-    return Response(content)
+def already_saved_job_api_view(request, job_id):
+    saved_job_id = Applicant.objects.filter(job_id=job_id).values_list('job_id')
+    data = serializers.serialize("json", Job.objects.filter(id__in=saved_job_id))
+
+    return HttpResponse(data, content_type="application/json")
