@@ -3,3 +3,31 @@ config.json
 __pycache__
 .ipynb_checkpoints
 env/
+
+# PyCharm files 
+.idea/ 
+*.iws /out/
+
+# Unit test / coverage reports 
+htmlcov/ 
+.tox/ 
+.coverage 
+.coverage.* 
+.cache 
+.pytest_cache/ 
+nosetests.xml 
+coverage.xml 
+*.cover 
+.hypothesis/
+
+# Environments 
+.env 
+.venv 
+env/ 
+venv/ 
+ENV/ 
+env.bak/ 
+venv.bak/
+
+# Sqlite
+*.sqlite3
